@@ -23,6 +23,7 @@ std::filesystem::path AdapterDirectory() {
 class CaptureProcess {
 public:
     WinHandle process, input;
+    WinHandle available{CreateEventW(nullptr,FALSE,FALSE,nullptr)};
     std::thread reader;
     std::mutex mutex;
     std::condition_variable changed;
@@ -82,6 +83,7 @@ public:
         return done == bytes;
     }
     void ReadLoop() {
+        AudioScheduling scheduling(false);
         try {
             while (!stopping) {
                 NativePacketHeader h;
@@ -94,10 +96,10 @@ public:
                 // Backpressure is bounded. The live producer independently reports overflow.
                 changed.wait(lock, [this] { return packets.size() < 64 || stopping; });
                 if (stopping) break;
-                packets.push_back(std::move(packet)); changed.notify_all();
+                packets.push_back(std::move(packet)); changed.notify_all();SetEvent(available.Get());
             }
         } catch (const std::exception& e) { std::lock_guard lock(mutex); error = e.what(); }
-        std::lock_guard lock(mutex); ended = true; changed.notify_all();
+        std::lock_guard lock(mutex); ended = true; changed.notify_all();SetEvent(available.Get());
     }
     bool Pop(NativePacket& packet) {
         std::lock_guard lock(mutex);

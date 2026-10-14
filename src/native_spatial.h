@@ -76,7 +76,11 @@ private:
     std::size_t channels_;
     NativeSpatialScene scene_;
     std::map<std::uint64_t, Timing> streams_;
-    std::map<std::uint64_t, std::vector<float>> pending_;
+    // Larger than the bounded 96k-frame window plus one maximum packet/tail.
+    static constexpr std::size_t capacity_=131072;
+    std::vector<float> pending_;
+    std::vector<std::uint64_t> stamps_;
+    float* Row(std::uint64_t frame);
     std::uint64_t anchor_{}, cursor_{}, end_{}, late_{}, silent_{}, expired_{};
     bool completed_{};
 };

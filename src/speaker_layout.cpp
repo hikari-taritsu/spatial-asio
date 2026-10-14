@@ -5,8 +5,8 @@
 #include <set>
 #include <sstream>
 namespace spatial {
-std::optional<std::size_t> SpeakerLayout::FindSpeaker(std::wstring_view name) const {
-    const auto key=Lowercase(std::wstring(name));
+std::optional<std::size_t> SpeakerLayout::FindSpeaker(std::wstring_view speakerName) const {
+    const auto key=Lowercase(std::wstring(speakerName));
     for(std::size_t i=0;i<speakers.size();++i) if(Lowercase(speakers[i].name)==key) return i;
     return {};
 }

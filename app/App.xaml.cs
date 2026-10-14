@@ -16,10 +16,12 @@ public partial class App : Application {
         }
         var window=new MainWindow();MainWindow=window;
         if(Preview) {
-            window.Width=1280;window.Height=840;
+            int width=e.Args.Length>2?int.Parse(e.Args[2]):1280,height=e.Args.Length>3?int.Parse(e.Args[3]):840;
+            double dpi=e.Args.Length>4?double.Parse(e.Args[4],System.Globalization.CultureInfo.InvariantCulture):96;
+            window.Width=width;window.Height=height;
             var content=(FrameworkElement)window.Content;
-            content.Measure(new Size(1280,840));content.Arrange(new Rect(0,0,1280,840));content.UpdateLayout();
-            var bitmap=new RenderTargetBitmap(1280,840,96,96,PixelFormats.Pbgra32);bitmap.Render(content);
+            content.Measure(new Size(width,height));content.Arrange(new Rect(0,0,width,height));content.UpdateLayout();
+            var bitmap=new RenderTargetBitmap((int)(width*dpi/96),(int)(height*dpi/96),dpi,dpi,PixelFormats.Pbgra32);bitmap.Render(content);
             var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(bitmap));
             using(var file=File.Create(e.Args[1]))encoder.Save(file);
             Shutdown();

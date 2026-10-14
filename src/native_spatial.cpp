@@ -122,7 +122,15 @@ std::vector<float> NativeSpatialScene::FlushStream(std::uint64_t id) {
     return result;
 }
 NativeSpatialTimeline::NativeSpatialTimeline(const SpeakerLayout& layout)
-    : channels_(layout.speakers.size()), scene_(layout) {}
+    : channels_(layout.speakers.size()), scene_(layout),
+      pending_(capacity_*channels_), stamps_(capacity_) {}
+float* NativeSpatialTimeline::Row(std::uint64_t frame) {
+    if(frame<cursor_ || frame-cursor_>=capacity_) throw std::runtime_error("Native timeline ring window exceeded");
+    const auto index=frame%capacity_;
+    auto* row=pending_.data()+index*channels_;
+    if(stamps_[index]!=frame+1) { std::fill_n(row,channels_,0.f);stamps_[index]=frame+1; }
+    return row;
+}
 void NativeSpatialTimeline::Add(const NativePacket& p) {
     if (completed_) throw std::runtime_error("Cannot add packets after native timeline completion");
     if (!anchor_) anchor_ = p.header.captureNs;
@@ -154,10 +162,10 @@ void NativeSpatialTimeline::Add(const NativePacket& p) {
     streams_[h.stream] = {start + h.frames, h.sequence, h.captureNs, h.frames};
     const auto skip = start < cursor_ ? std::min<std::uint64_t>(h.frames, cursor_ - start) : 0;
     late_ += skip;
-    // Sparse per-frame storage is bounded to the playback window. Mixing is outside ASIO callback.
+    // Fixed storage: no per-frame allocation; preserve packet and sample addition order.
     for (std::size_t f = static_cast<std::size_t>(skip); f < h.frames; ++f) {
-        auto [row, fresh] = pending_.try_emplace(start + f, channels_, 0.0F);
-        for (std::size_t c = 0; c < channels_; ++c) row->second[c] += audio[f * channels_ + c];
+        auto* row=Row(start+f);
+        for (std::size_t c = 0; c < channels_; ++c) row[c] += audio[f * channels_ + c];
     }
     end_ = std::max(end_, start + h.frames);
 }
@@ -172,8 +180,8 @@ void NativeSpatialTimeline::DrainStream(std::uint64_t id, Timing& timing) {
     for (std::size_t f=0;f<tail.size()/channels_;++f) {
         const auto at=timing.next+f;
         if (at<cursor_) { ++late_; continue; }
-        auto [row,fresh]=pending_.try_emplace(at,channels_,0.f);
-        for (std::size_t c=0;c<channels_;++c) row->second[c]+=tail[f*channels_+c];
+        auto* row=Row(at);
+        for (std::size_t c=0;c<channels_;++c) row[c]+=tail[f*channels_+c];
     }
     end_=std::max(end_,timing.next+tail.size()/channels_);
     timing.sealed=true;
@@ -187,10 +195,10 @@ std::vector<float> NativeSpatialTimeline::Take(std::uint64_t until) {
     for (auto& [id,timing]:streams_) if (until>timing.next) DrainStream(id,timing);
     std::vector<float> output(static_cast<std::size_t>(until - cursor_) * channels_);
     for (auto f = cursor_; f < until; ++f) {
-        auto row = pending_.find(f);
-        if (row == pending_.end()) { ++silent_; continue; }
-        std::copy(row->second.begin(), row->second.end(), output.begin() + (f - cursor_) * channels_);
-        pending_.erase(row);
+        const auto index=f%capacity_;
+        if (stamps_[index]!=f+1) { ++silent_; continue; }
+        std::copy_n(pending_.data()+index*channels_,channels_,output.data()+(f-cursor_)*channels_);
+        stamps_[index]=0;
     }
     cursor_ = until;
     return output;

@@ -21,6 +21,7 @@ try {
     Copy-Item -LiteralPath LICENSE,README.md,THIRD-PARTY-NOTICES.md -Destination dist/app -Force
     Copy-Item -LiteralPath docs -Destination dist/app -Recurse -Force
     Copy-Item -LiteralPath third_party/asio/LICENSE.txt -Destination dist/app/Licenses/ASIO.txt -Force
+    Copy-Item -LiteralPath third_party/SourceHanSans-LICENSE.txt -Destination dist/app/Licenses -Force
     $nuget=if($env:NUGET_PACKAGES){$env:NUGET_PACKAGES}else{Join-Path $env:USERPROFILE '.nuget\packages'}
     foreach($name in @('microsoft.netcore.app.runtime.win-x64','microsoft.windowsdesktop.app.runtime.win-x64')) {
         $runtimePackage=Join-Path $nuget "$name\10.0.8"

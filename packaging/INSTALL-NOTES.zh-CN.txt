@@ -1,4 +1,4 @@
-Spatial ASIO 0.1.0 预览版
+Spatial ASIO 0.1.1 预览版
 
 仅保留：原生对象捕获 → 点声源渲染 → ASIO。
 已包含 .NET 桌面运行时、Python 和 Frida，无需另行安装这些环境。

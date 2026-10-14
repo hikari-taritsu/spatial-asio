@@ -97,7 +97,14 @@ public partial class MainWindow : Window {
         bool audible=false;var peaks=j.GetProperty("peak");var rms=j.GetProperty("rms");
         for(int i=0;i<Math.Min(config.Channels.Count,peaks.GetArrayLength());i++){config.Channels[i].Peak=peaks[i].GetDouble();config.Channels[i].Rms=rms[i].GetDouble();audible|=config.Channels[i].Peak>.000001;}
         TopStatus.Text=receiving&&output?(audible?"信号正在输出":"收到对象 · 当前静音"):"运行中 · 等待空间音频";
-        ObjectInfo.Text=$"{j.GetProperty("objects")} 个对象 · {j.GetProperty("packets")} 个数据包";DropInfo.Text=$"欠载 {j.GetProperty("underruns")} 帧 · 丢包 {j.GetProperty("gaps")}";
+        ObjectInfo.Text=$"{j.GetProperty("objects")} 个对象 · {j.GetProperty("packets")} 个数据包";DropInfo.Text=$"欠载 {j.GetProperty("underruns")} · 迟到 {j.GetProperty("lateFrames")} 帧 · 丢包 {j.GetProperty("gaps")}";
+        if(j.TryGetProperty("captureBufferMs",out var capture)) {
+            var queue=j.GetProperty("queuedMs").GetDouble();var driver=j.GetProperty("driverLatencyMs").GetDouble();
+            LatencyInfo.Text=$"捕获缓冲 {capture.GetDouble():F0} ms · 前视 10.67 ms\n输出排队 {queue:F1} ms · 驱动报告 {driver:F1} ms\n渲染均值 {j.GetProperty("renderMeanMs").GetDouble():F2} ms / 包\n峰值 {j.GetProperty("renderMaxMs").GetDouble():F2} ms · 传输峰值 {j.GetProperty("captureMaxMs").GetDouble():F1} ms";
+            LatencyInfo.ToolTip="排队含 ASIO 软件环；驱动报告来自 ASIO。以上不包含游戏、Windows 音频图、Dante 网络及扬声器的全部延迟，不能当作声学端到端实测。";
+            if(j.GetProperty("underruns").GetUInt64()>0 || j.GetProperty("lateFrames").GetUInt64()>0 || j.GetProperty("gaps").GetUInt64()>0)
+                TopStatus.Text="检测到音频间断 · 请提高捕获或 ASIO 缓冲";
+        }
         Stage.Refresh();Meters.Refresh();
     }
     async Task Stop(){

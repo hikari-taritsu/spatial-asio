@@ -20,7 +20,7 @@ public sealed class Configuration {
     public string Layout {get;set;}="9.1.6";
     public double GainDb {get;set;}=-12;
     public int BufferFrames {get;set;}
-    public int PrebufferMs {get;set;}=60;
+    public int PrebufferMs {get;set;}=32;
     public double SampleRate {get;set;}=48000;
     public List<Channel> Channels {get;set;}=CreateChannels("9.1.6");
     public static readonly string[] Layouts=["9.1.6","7.1.4","7.1.2","5.1.4","5.1.2","5.1","2.0"];
@@ -37,7 +37,7 @@ public sealed class Configuration {
     public void Validate() {
         if(!DriverId.StartsWith("asio:",StringComparison.OrdinalIgnoreCase) || !Guid.TryParse(DriverId[5..],out _))throw new InvalidDataException("请选择已安装的 64 位 ASIO 驱动。");
         if(!Layouts.Contains(Layout)||!Channels.Select(c=>c.Name).SequenceEqual(CreateChannels(Layout).Select(c=>c.Name)))throw new InvalidDataException("布局与声道列表不一致。");
-        if(!double.IsFinite(GainDb)||GainDb < -60 || GainDb>0 || BufferFrames<0 || BufferFrames>65536 || PrebufferMs<20 || PrebufferMs>500 || !double.IsFinite(SampleRate)||SampleRate<8000||SampleRate>384000)throw new InvalidDataException("音量、采样率或缓冲参数超出范围。");
+        if(!double.IsFinite(GainDb)||GainDb < -60 || GainDb>0 || BufferFrames<0 || BufferFrames>65536 || PrebufferMs<8 || PrebufferMs>500 || !double.IsFinite(SampleRate)||SampleRate<8000||SampleRate>384000)throw new InvalidDataException("音量、采样率或缓冲参数超出范围。");
         if(Channels.Any(c=>c.Physical<1||c.Physical>256||!double.IsFinite(c.Trim)||c.Trim < -60||c.Trim>12)||Channels.Select(c=>c.Physical).Distinct().Count()!=Channels.Count)throw new InvalidDataException("ASIO 通道必须互不重复（1–256），微调范围为 −60 至 +12 dB。");
     }
     public string ToIni() {
@@ -53,10 +53,13 @@ public sealed class Configuration {
 }
 internal static class AppChecks {
     public static int Run(){try{
+        var font=(System.Windows.Media.FontFamily)System.Windows.Application.Current.FindResource("InterfaceFont");
+        var face=new System.Windows.Media.Typeface(font,System.Windows.FontStyles.Normal,System.Windows.FontWeights.Normal,System.Windows.FontStretches.Normal);
+        if(!face.TryGetGlyphTypeface(out var glyph)||!glyph.FontUri.ToString().Contains("SourceHanSansCN-Regular",StringComparison.OrdinalIgnoreCase))throw new Exception("Bundled UI font did not load");
         var c=new Configuration{DriverId="asio:{00000000-0000-0000-0000-000000000001}"};c.Validate();
         if(!c.ToIni().Contains("TMR")||c.Channels.Count!=16)throw new Exception("9.1.6 profile");
         foreach(var l in Configuration.Layouts){c.Layout=l;c.Channels=Configuration.CreateChannels(l);c.Validate();}
         c.Channels[1].Physical=c.Channels[0].Physical;bool failed=false;try{c.Validate();}catch(InvalidDataException){failed=true;}if(!failed)throw new Exception("Duplicate routing accepted");
-        File.WriteAllText(Path.Combine(AppContext.BaseDirectory,"app-checks.txt"),"PASS: presets, configuration serialization, ASIO identity, duplicate-route rejection");return 0;
+        File.WriteAllText(Path.Combine(AppContext.BaseDirectory,"app-checks.txt"),"PASS: bundled font, presets, configuration serialization, ASIO identity, duplicate-route rejection");return 0;
     }catch(Exception e){File.WriteAllText(Path.Combine(AppContext.BaseDirectory,"app-checks.txt"),e.ToString());return 1;}}
 }

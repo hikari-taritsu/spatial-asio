@@ -1,4 +1,4 @@
-#define AppVersion "0.1.0-preview.1"
+#define AppVersion "0.1.1-preview.1"
 [Setup]
 AppId={{D9DB5BBB-F610-499F-B6EC-06CBED1E526C}
 AppName=Spatial ASIO
@@ -15,7 +15,7 @@ MinVersion=10.0.19041
 LicenseFile=..\LICENSE
 InfoBeforeFile=INSTALL-NOTES.zh-CN.txt
 OutputDir=..\dist
-OutputBaseFilename=SpatialASIO-0.1.0-preview.1-win-x64-Setup
+OutputBaseFilename=SpatialASIO-0.1.1-preview.1-win-x64-Setup
 Compression=lzma2/normal
 SolidCompression=yes
 WizardStyle=modern

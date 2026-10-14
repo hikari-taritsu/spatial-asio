@@ -320,7 +320,7 @@ void AsioRenderer::SetGain(double gain) {
     if(!std::isfinite(gain) || gain<0 || gain>1) throw std::invalid_argument("Invalid output gain");
     impl_->targetGain=gain;
 }
-void AsioRenderer::Service(const InterleavedPcmQueue& queue, bool count, DWORD timeout) {
+void AsioRenderer::Service(const InterleavedPcmQueue& queue, bool count, DWORD timeout,HANDLE captureWake) {
     auto& p = *impl_;
     MSG message{};
     while (PeekMessageW(&message, nullptr, 0, 0, PM_REMOVE)) {
@@ -338,7 +338,8 @@ void AsioRenderer::Service(const InterleavedPcmQueue& queue, bool count, DWORD t
         Check(p.driver->api->getLatencies(&input, &p.outputLatency), "getLatencies");
     }
     p.Fill(queue);
-    WaitForSingleObject(p.wake.Get(), timeout);
+    if(captureWake) { const HANDLE events[]{p.wake.Get(),captureWake};WaitForMultipleObjects(2,events,FALSE,timeout); }
+    else WaitForSingleObject(p.wake.Get(), timeout);
     p.Fill(queue);
     const auto rendered = p.rendered.load();
     if (rendered != p.previousRendered) { p.previousRendered = rendered; p.lastCallback = std::chrono::steady_clock::now(); }
@@ -346,8 +347,10 @@ void AsioRenderer::Service(const InterleavedPcmQueue& queue, bool count, DWORD t
         throw std::runtime_error("ASIO：驱动停止提供回调。请检查设备连接并重新启动音频桥。");
 }
 void AsioRenderer::DiscardConsumed(InterleavedPcmQueue& queue) const { queue.DiscardBefore(impl_->consumed.load()); }
+std::uint64_t AsioRenderer::BufferedFrames(const InterleavedPcmQueue& queue) const {return queue.FramesAvailable(impl_->consumed.load());}
 std::uint64_t AsioRenderer::MinimumFramesAvailable(const InterleavedPcmQueue& queue) const { return queue.FramesAvailable(impl_->source); }
 std::uint32_t AsioRenderer::MaximumBufferFrames() const { return static_cast<std::uint32_t>(std::ceil(impl_->bufferFrames * 2 * 48000.0 / impl_->rate)); }
+double AsioRenderer::PeriodMilliseconds() const {return impl_->bufferFrames*1000.0/impl_->rate;}
 bool AsioRenderer::IsDrained(const InterleavedPcmQueue& queue) const { return queue.FramesAvailable(impl_->source) == 0 && impl_->ring->Available() == 0; }
 bool AsioRenderer::IsStarted() const { return impl_->started; }
 void AsioRenderer::Pause() {

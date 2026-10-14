@@ -14,7 +14,8 @@ std::vector<double> PanAdmOarPoint(const SpeakerLayout& layout, double x, double
         throw std::invalid_argument("OAR point mode requires Cartesian unit-room positions and zero snap tolerance");
     // Numeric geometry and quantization verified against local DSP CPU probes.
     // This is an independent mathematical implementation, with no proprietary
-    // binary dependency. Only the complete 9.1.6 semantic layout is validated.
+    // binary dependency. The active layout alone builds the panning mesh;
+    // no intermediate 9.1.6 signal or post-render downmix is used.
     static const std::map<std::wstring,std::array<int,3>> points = {
         {L"fl",{0,0,0}}, {L"fr",{32767,0,0}}, {L"fc",{16384,0,0}},
         {L"sl",{0,16384,0}}, {L"sr",{32767,16384,0}},
@@ -24,19 +25,34 @@ std::vector<double> PanAdmOarPoint(const SpeakerLayout& layout, double x, double
         {L"tml",{7928,16384,32767}}, {L"tmr",{24840,16384,32767}},
         {L"tbl",{7928,24840,32767}}, {L"tbr",{24840,24840,32767}}
     };
-    if (layout.speakers.size()!=16) throw std::invalid_argument("OAR point mode requires 9.1.6");
-    std::set<std::wstring> seen;
-    std::map<int,std::map<float,std::map<float,std::size_t>>> layers;
-    for (std::size_t i=0;i<layout.speakers.size();++i) {
-        const auto name=Lowercase(layout.speakers[i].name);
-        if (!seen.insert(name).second) throw std::invalid_argument("Duplicate OAR speaker");
-        if (name==L"lfe") continue;
-        const auto it=points.find(name);
-        if (it==points.end()) throw std::invalid_argument("Unsupported OAR speaker");
-        const auto& p=it->second;
-        layers[p[2]!=0][p[1]/32768.f].emplace(p[0]/32768.f,i);
+    if (layout.speakers.size()<2 || layout.speakers.size()>16 ||
+        !layout.FindSpeaker(L"FL") || !layout.FindSpeaker(L"FR"))
+        throw std::invalid_argument("Point rendering requires 2..16 speakers including FL and FR");
+    struct Prepared {
+        std::vector<std::wstring> names;
+        std::map<int,std::map<float,std::map<float,std::size_t>>> layers;
+    };
+    // One bounded cache per rendering thread, keyed by the complete semantic
+    // order (never by a layout pointer whose lifetime could end).
+    static thread_local Prepared prepared;
+    bool same=prepared.names.size()==layout.speakers.size();
+    for(std::size_t i=0;same && i<layout.speakers.size();++i) same=prepared.names[i]==layout.speakers[i].name;
+    if(!same) {
+        Prepared next;
+        std::set<std::wstring> seen;
+        for (std::size_t i=0;i<layout.speakers.size();++i) {
+            const auto name=Lowercase(layout.speakers[i].name);
+            if (!seen.insert(name).second) throw std::invalid_argument("Duplicate OAR speaker");
+            if (name==L"lfe") continue;
+            const auto it=points.find(name);
+            if (it==points.end()) throw std::invalid_argument("Unsupported OAR speaker");
+            const auto& p=it->second;
+            next.layers[p[2]!=0][p[1]/32768.f].emplace(p[0]/32768.f,i);
+        }
+        for(const auto& s:layout.speakers) next.names.push_back(s.name);
+        prepared=std::move(next);
     }
-    if (!seen.contains(L"lfe")) throw std::invalid_argument("OAR point mode requires LFE");
+    const auto& layers=prepared.layers;
     const auto quantize=[](double v,int steps) {
         const float input=static_cast<float>(v);
         const long n=std::clamp(std::lround(static_cast<double>(input)*steps),0L,static_cast<long>(steps));
@@ -65,8 +81,11 @@ std::vector<double> PanAdmOarPoint(const SpeakerLayout& layout, double x, double
         }
         return weights;
     };
-    const auto zg=pair(pz>=32767/32768.f ? 1.f : pz);
-    std::vector<float> values(16);
+    // With no height layer, height has no independent output dimension. Do
+    // not attenuate to silence as z approaches one. A two-speaker layout also
+    // clamps the unavailable front/back dimension to its single row.
+    const auto zg=layers.size()==1 ? std::array<float,2>{1,1} : pair(pz>=32767/32768.f ? 1.f : pz);
+    std::vector<float> values(layout.speakers.size());
     for (const auto& [layer,rows]:layers)
         for (const auto& [row,yg]:select(rows,py)) {
             const auto& columns=rows.at(row);
@@ -76,8 +95,8 @@ std::vector<double> PanAdmOarPoint(const SpeakerLayout& layout, double x, double
     double power=0;
     for (const float v:values) power+=static_cast<double>(v*v);
     const float norm=static_cast<float>(std::sqrt(power));
-    std::vector<double> result(16);
-    if (norm>0) for (std::size_t i=0;i<16;++i) result[i]=values[i]/norm;
+    std::vector<double> result(values.size());
+    if (norm>0) for (std::size_t i=0;i<values.size();++i) result[i]=values[i]/norm;
     return result;
 }
 

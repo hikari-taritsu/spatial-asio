@@ -7,9 +7,6 @@ using namespace spatial;
 void require(bool b,const char* text){if(!b)throw std::runtime_error(text);}
 int main(){try{
     const auto layout=Canonical916Layout();
-    auto reduced=layout;reduced.speakers.erase(reduced.speakers.begin()+14,reduced.speakers.end());reduced.speakers.erase(reduced.speakers.begin()+8,reduced.speakers.begin()+12);
-    const auto folding=BuildCanonical916Mix(reduced);
-    require(folding[10][*reduced.FindSpeaker(L"TML")]==1&&folding[14][*reduced.FindSpeaker(L"TML")]==1,"7.1.2 must preserve front/rear height energy in TML");
     for(int x=-10;x<=10;++x)for(int y=-10;y<=10;++y)for(int z=0;z<=10;++z){
         auto g=PanAdmOarPoint(layout,x/10.,y/10.,z/10.);double power=0;
         for(double v:g){require(std::isfinite(v)&&v>=0,"Invalid point gain");power+=v*v;}

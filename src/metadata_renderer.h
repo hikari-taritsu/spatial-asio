@@ -14,16 +14,13 @@ enum MetadataFlags : std::uint32_t {
 };
 struct MetadataEvent {
     std::uint32_t offset{}, object{}, flags{};
-    std::int32_t bed{-1}; // canonical 9.1.6 index; -1 = point object
+    std::int32_t bed{-1}; // input semantic identity in Canonical916Layout; -1 = point object
     float x{}, y{1}, z{}, gain{1};
     std::uint32_t rampSamples{};
 };
 static_assert(sizeof(MetadataEvent)==36);
 
 SpeakerLayout Canonical916Layout();
-// Other layouts use an explicit canonical-bus projection. Only the complete
-// semantic 9.1.6 layout has Dolby-reference equivalence evidence.
-std::vector<std::vector<double>> BuildCanonical916Mix(const SpeakerLayout& layout);
 
 // Bounded streaming adapter for the independently reconstructed offline model.
 // Exactly Period() frames of lookahead are needed to select the LAST metadata
@@ -64,11 +61,11 @@ private:
     void Apply(const MetadataEvent& event);
     void RenderPeriod(unsigned frames);
     void GainBlock(Lane& lane, const std::array<float,16>& target, bool changed);
-    SpeakerLayout canonical_;
-    std::vector<std::vector<double>> projection_;
+    SpeakerLayout layout_;
+    std::array<std::array<float,16>,16> bedGains_{};
     std::vector<Lane> lanes_;
-    std::vector<float> ready_, canonicalMix_;
-    unsigned period_, channels_, objects_, fill_{};
+    std::vector<float> ready_;
+    unsigned period_, channels_, objects_, fill_{}, usedLanes_{};
     std::uint64_t position_{};
     float oldCoefficient_, newCoefficient_;
     bool finished_{};

@@ -16,10 +16,12 @@ public:
     ~AsioRenderer();
     void Prime(const InterleavedPcmQueue& queue);
     void Start();
-    void Service(const InterleavedPcmQueue& queue, bool countStarvation, DWORD timeout);
+    void Service(const InterleavedPcmQueue& queue, bool countStarvation, DWORD timeout,HANDLE captureWake=nullptr);
+    std::uint64_t BufferedFrames(const InterleavedPcmQueue& queue) const;
     void DiscardConsumed(InterleavedPcmQueue& queue) const;
     std::uint64_t MinimumFramesAvailable(const InterleavedPcmQueue& queue) const;
     std::uint32_t MaximumBufferFrames() const;
+    double PeriodMilliseconds() const;
     bool IsDrained(const InterleavedPcmQueue& queue) const;
     bool IsStarted() const;
     void Stop();

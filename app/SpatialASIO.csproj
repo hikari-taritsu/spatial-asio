@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AssemblyName>SpatialASIO</AssemblyName>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <PlatformTarget>x64</PlatformTarget>
@@ -16,4 +16,5 @@
     <Product>Spatial ASIO</Product>
     <Description>原生空间对象到 ASIO 的点声源音频工作台</Description>
   </PropertyGroup>
+  <ItemGroup><Resource Include="Fonts\SourceHanSansCN-Regular.otf"/></ItemGroup>
 </Project>

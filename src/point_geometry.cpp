@@ -40,13 +40,18 @@ std::vector<double> PanAdmOarPoint(const SpeakerLayout& layout, double x, double
     if(!same) {
         Prepared next;
         std::set<std::wstring> seen;
+        const bool surroundIsRear=!layout.FindSpeaker(L"BL") && !layout.FindSpeaker(L"BR");
         for (std::size_t i=0;i<layout.speakers.size();++i) {
             const auto name=Lowercase(layout.speakers[i].name);
             if (!seen.insert(name).second) throw std::invalid_argument("Duplicate OAR speaker");
             if (name==L"lfe") continue;
             const auto it=points.find(name);
             if (it==points.end()) throw std::invalid_argument("Unsupported OAR speaker");
-            const auto& p=it->second;
+            auto p=it->second;
+            // A 5.x layout has one surround pair and two ground rows. That
+            // pair spans the rear of the room; retaining the 7.x side row
+            // would collapse the entire rear half of moving trajectories.
+            if(surroundIsRear && (name==L"sl" || name==L"sr"))p[1]=32767;
             next.layers[p[2]!=0][p[1]/32768.f].emplace(p[0]/32768.f,i);
         }
         for(const auto& s:layout.speakers) next.names.push_back(s.name);

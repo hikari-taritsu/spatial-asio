@@ -15,6 +15,11 @@ SpeakerLayout Layout(const wchar_t* names) {
 }
 void CheckLayout(const SpeakerLayout& layout) {
     const auto count=layout.speakers.size();
+    if(layout.FindSpeaker(L"SL") && !layout.FindSpeaker(L"BL")) {
+        const auto side=PanAdmOarPoint(layout,-1,0,0),rear=PanAdmOarPoint(layout,-1,-1,0);
+        Check(side[*layout.FindSpeaker(L"FL")]>.69 && side[*layout.FindSpeaker(L"SL")]>.69,"5.x side position must lie between front and rear ground rows");
+        Check(rear[*layout.FindSpeaker(L"SL")]==1,"5.x surround must reach the rear room boundary");
+    }
     for(int x=-10;x<=10;++x)for(int y=-10;y<=10;++y)for(int z=0;z<=10;++z) {
         const auto g=PanAdmOarPoint(layout,x/10.,y/10.,z/10.);
         const auto mirror=PanAdmOarPoint(layout,-x/10.,y/10.,z/10.);

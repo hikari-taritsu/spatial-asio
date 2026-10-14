@@ -1,0 +1,15 @@
+/build/
+/dist/
+/artifacts/
+/app/bin/
+/app/obj/
+/tools/NativeSpatial/python/
+/tools/NativeSpatial/deps/
+/.superdesign/
+/bootstrap_local.py
+__pycache__/
+*.pyc
+*.user
+*.log
+*.wav
+*.pdb

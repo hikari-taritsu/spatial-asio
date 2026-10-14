@@ -1,0 +1,13 @@
+* text=auto
+*.cpp text eol=lf
+*.h text eol=lf
+*.inc text eol=lf
+*.cs text eol=lf
+*.xaml text eol=lf
+*.py text eol=lf
+*.js text eol=lf
+*.md text eol=lf
+*.ps1 text eol=crlf
+*.iss text eol=crlf
+*.png binary
+third_party/** -whitespace

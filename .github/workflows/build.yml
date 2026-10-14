@@ -1,0 +1,25 @@
+name: Windows build
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Build and validate
+        shell: pwsh
+        run: ./tools/Build.ps1
+      - name: Capture protocol tests
+        shell: pwsh
+        run: ./tools/NativeSpatial/python/python.exe tests/test_capture.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SpatialASIO-windows-x64
+          path: dist/app

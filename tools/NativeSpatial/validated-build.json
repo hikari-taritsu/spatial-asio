@@ -1,0 +1,36 @@
+{
+  "passed": true,
+  "sha256": "b97353300a4e0c68257bb5a2554afaa3733609c739368febc36a5f63ef47a44f",
+  "cycles": 500,
+  "positionUpdates": 17,
+  "gainUpdates": 2000,
+  "pcm": [
+    {
+      "slot": 0,
+      "bytes": 960000,
+      "bitExact": true,
+      "sha256": "2c386d7c3130a89e0e6ca0d24a327cbf38eb74ca353ff7b5bf605488e9b75d7e"
+    },
+    {
+      "slot": 1,
+      "bytes": 960000,
+      "bitExact": true,
+      "sha256": "298c9e5cd3c0d2325a650c303ee5fa8799a01bd37cd45f27f79bee3d76af5982"
+    },
+    {
+      "slot": 2,
+      "bytes": 960000,
+      "bitExact": true,
+      "sha256": "2a0860e874d1a0e20d244154da4071b6adc255e540b77066aadfc80f316e4457"
+    },
+    {
+      "slot": 3,
+      "bytes": 960000,
+      "bitExact": true,
+      "sha256": "8f7e52567129b5c7caf322b209b041f66ccecbf8ef666b9c01fae6d61c40c66b"
+    }
+  ],
+  "scope": "Owned 4-object/500-cycle muted fixture; not real-game or audible speaker validation",
+  "captureReport": "Logs/native-capture-40756.json",
+  "source": "generated\\native-spatial\\local-validation-02"
+}
